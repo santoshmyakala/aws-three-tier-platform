@@ -1,0 +1,5 @@
+project           = "three-tier"
+environment       = "dev"
+region            = "eu-central-1"
+vpn_allowed_cidrs = ["203.0.113.10/32"] # replace with your public IP
+# certificate_arn = "arn:aws:acm:eu-central-1:123456789012:certificate/..."

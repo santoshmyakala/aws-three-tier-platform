@@ -1,0 +1,10 @@
+# Accepted risks — each is intentional for this reference architecture.
+
+# The public ALB must accept HTTP/HTTPS from the internet.
+AVD-AWS-0107
+# Instances need outbound internet (via NAT) for OS packages and SSM endpoints.
+AVD-AWS-0104
+# HTTP listener is used when no ACM certificate is supplied; it redirects to HTTPS when one is.
+AVD-AWS-0054
+# The public ALB is intentionally internet-facing.
+AVD-AWS-0053

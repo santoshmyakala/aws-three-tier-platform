@@ -1,0 +1,27 @@
+#!/bin/bash
+# Nginx reverse proxy in front of the internal app load balancer.
+set -euo pipefail
+apt-get update -y
+apt-get install -y nginx
+cat > /etc/nginx/sites-available/default <<'CONF'
+server {
+    listen 80 default_server;
+    server_tokens off;
+
+    location = /nginx-health { access_log off; return 200 "ok\n"; }
+
+    location / {
+        proxy_pass         http://${upstream};
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout    30s;
+    }
+}
+CONF
+nginx -t
+systemctl enable --now nginx
+systemctl reload nginx

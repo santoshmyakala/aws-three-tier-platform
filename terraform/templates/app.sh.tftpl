@@ -1,0 +1,50 @@
+#!/bin/bash
+# Minimal Node.js service: reports which instance served the request and whether MongoDB is reachable.
+set -euo pipefail
+apt-get update -y
+apt-get install -y nodejs npm
+useradd --system --create-home --home-dir /opt/app app || true
+cd /opt/app
+cat > package.json <<'JSON'
+{ "name": "demo-app", "version": "1.0.0", "private": true, "dependencies": { "mongodb": "^6.8.0" } }
+JSON
+cat > server.js <<'JS'
+const http = require("http");
+const os = require("os");
+const { MongoClient } = require("mongodb");
+
+const client = new MongoClient(process.env.MONGO_URI, { serverSelectionTimeoutMS: 2000 });
+let connected = false;
+client.connect().then(() => { connected = true; }).catch((e) => console.error("mongo:", e.message));
+
+http.createServer(async (req, res) => {
+  if (req.url === "/health") { res.writeHead(200); return res.end("ok"); }
+  let visits = null;
+  if (connected) {
+    const r = await client.db().collection("visits")
+      .findOneAndUpdate({ _id: "counter" }, { $inc: { n: 1 } }, { upsert: true, returnDocument: "after" });
+    visits = r.n;
+  }
+  res.writeHead(200, { "content-type": "application/json" });
+  res.end(JSON.stringify({ host: os.hostname(), mongo: connected ? "connected" : "unavailable", visits }));
+}).listen(3000);
+JS
+npm install --omit=dev
+chown -R app:app /opt/app
+cat > /etc/systemd/system/demo-app.service <<'UNIT'
+[Unit]
+Description=Demo Node.js app
+After=network-online.target
+[Service]
+User=app
+WorkingDirectory=/opt/app
+Environment=MONGO_URI=${mongo_uri}
+ExecStart=/usr/bin/node server.js
+Restart=always
+NoNewPrivileges=true
+ProtectSystem=strict
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now demo-app
