@@ -1,0 +1,35 @@
+title: AWS three-tier platform
+subtitle: Every tier accepts traffic only from the tier in front of it · 3 availability zones · no SSH (SSM only)
+grid: {dx: 220, dy: 150}
+groups:
+  - {id: vpc, label: VPC 10.20.0.0/16, sub: 3 AZs · flow logs → CloudWatch, icon: amazonwebservices, color: orange, box: [1, 0.5, 4, 2.75], pad: 22, pad_top: 26}
+  - {id: pub, label: Public subnets, color: blue, box: [1, 0.5, 1, 2.75]}
+  - {id: app, label: Private app subnets, color: green, box: [2, 0.5, 3, 1.75]}
+  - {id: data, label: Private data subnets, color: purple, box: [4, 0.5, 4, 2.75]}
+nodes:
+  - {id: users, label: Users, sub: internet, icon: users, at: [0, 0.5], color: gray}
+  - {id: ops, label: Operators, sub: allow-listed CIDRs, icon: user, at: [0, 2.75], color: gray}
+  - {id: alb, label: Public ALB, sub: TLS 1.3 · HTTP→HTTPS, icon: loadbalancer, at: [1, 0.5], color: blue, pulse: true}
+  - {id: nat, label: NAT gateway, sub: egress only, icon: gateway, at: [1, 1.625], color: blue}
+  - {id: vpn, label: WireGuard, sub: Elastic IP · UDP 51820, icon: wireguard, at: [1, 2.75], color: green}
+  - {id: web, label: Nginx tier, sub: ASG · rolling refresh, icon: nginx, at: [2, 0.5], color: green, badge: "×2", stack: true}
+  - {id: ialb, label: Internal ALB, sub: private only, icon: loadbalancer, at: [3, 0.5], color: green}
+  - {id: node, label: Node.js tier, sub: ASG · CPU target 60%, icon: javascript, at: [3, 1.75], color: green, badge: "2–3", stack: true}
+  - {id: db1, label: MongoDB · AZ a, sub: rs0 primary, icon: mongodb, at: [4, 0.5], color: purple, pulse: true}
+  - {id: db2, label: MongoDB · AZ b, sub: rs0 secondary, icon: mongodb, at: [4, 1.625], color: purple}
+  - {id: db3, label: MongoDB · AZ c, sub: rs0 secondary, icon: mongodb, at: [4, 2.75], color: purple}
+edges:
+  - {from: users, to: alb, label: HTTPS, kind: data}
+  - {from: alb, to: web, label: ":80", kind: data}
+  - {from: web, to: ialb, label: ":80", kind: data}
+  - {from: ialb, to: node, label: ":3000", kind: data}
+  - {from: node, to: db1, label: ":27017", kind: data, packet: db}
+  - {from: node, to: db2, kind: data, packet: db}
+  - {from: node, to: db3, kind: data, packet: db}
+  - {from: db1, to: db2, label: replication, kind: async, both: true, offset: [52, 0]}
+  - {from: db2, to: db3, kind: async, both: true, offset: [52, 0]}
+  - {from: ops, to: vpn, label: tunnel, kind: secure}
+  - {from: vpn, to: db3, label: "admin :27017 over VPN", kind: secure, at: 0.4}
+  - {from: web, to: nat, label: packages · SSM, kind: control, at: 0.55}
+  - {from: node, to: nat, kind: control}
+  - {from: users, to: db1, kind: deny, via: [[0, -0.55], [4, -0.55]], label: "direct DB access — blocked by security groups", at: 0.5}

@@ -17,35 +17,12 @@ Every tier accepts traffic only from the tier in front of it. Instances run with
 
 ## Architecture
 
-```mermaid
-flowchart TB
-  user([Users]) -->|HTTP/HTTPS| palb
-  ops([Operators]) -->|WireGuard UDP 51820| vpn
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/architecture-dark.svg">
+  <img alt="AWS three-tier architecture: users reach a public ALB, then an Nginx auto-scaling group, an internal ALB, a Node.js auto-scaling group and a three-member MongoDB replica set across three AZs; operators reach the private tiers only through a WireGuard VPN; direct database access from the internet is blocked." src="docs/diagrams/architecture-light.svg" width="100%">
+</picture>
 
-  subgraph vpc["VPC 10.20.0.0/16 — 3 availability zones"]
-    subgraph public["Public subnets"]
-      palb[Public ALB]
-      vpn[WireGuard gateway<br/>Elastic IP]
-      nat[NAT gateway]
-    end
-    subgraph app["Private app subnets"]
-      web[Nginx ASG<br/>min 2 / max 2]
-      ialb[Internal ALB]
-      node[Node.js ASG<br/>min 2 / max 3<br/>CPU target 60%]
-    end
-    subgraph data["Private data subnets"]
-      db1[(MongoDB<br/>AZ a)]
-      db2[(MongoDB<br/>AZ b)]
-      db3[(MongoDB<br/>AZ c)]
-    end
-  end
-
-  palb -->|:80| web -->|:80| ialb -->|:3000| node
-  node -->|:27017| db1 & db2 & db3
-  vpn -.->|:27017 admin access| db1
-  db1 -.-|replication rs0| db2 -.- db3
-  web & node & db1 -.->|packages, SSM| nat
-```
+<sub>Animated diagram generated from <a href="docs/diagrams">docs/diagrams/*.yaml</a> with <a href="https://github.com/santoshmyakala/santoshmyakala/tree/main/tools/archdiagram">archdiagram</a>.</sub>
 
 ### Security groups
 
