@@ -22,8 +22,6 @@ Every tier accepts traffic only from the tier in front of it. Instances run with
   <img alt="AWS three-tier architecture: users reach a public ALB, then an Nginx auto-scaling group, an internal ALB, a Node.js auto-scaling group and a three-member MongoDB replica set across three AZs; operators reach the private tiers only through a WireGuard VPN; direct database access from the internet is blocked." src="docs/diagrams/architecture-light.svg" width="100%">
 </picture>
 
-<sub>Animated diagram generated from <a href="docs/diagrams">docs/diagrams/*.yaml</a> with <a href="https://github.com/santoshmyakala/santoshmyakala/tree/main/tools/archdiagram">archdiagram</a>.</sub>
-
 ### Security groups
 
 | From → To | Port | Rule |
